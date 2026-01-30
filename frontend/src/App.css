@@ -1,0 +1,52 @@
+.formatted-response {
+  line-height: 1.8;
+}
+
+.formatted-response p {
+  margin-bottom: 1rem;
+}
+
+.formatted-response p:last-child {
+  margin-bottom: 0;
+}
+
+.formatted-response strong {
+  display: block;
+  font-family: var(--font-display);
+  font-size: 1.1em;
+  color: var(--accent);
+  margin: 1.5rem 0 0.5rem 0;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.formatted-response ul {
+  list-style: none;
+  padding-left: 0;
+  margin: 1rem 0;
+}
+
+.formatted-response li {
+  position: relative;
+  padding-left: 1.5rem;
+  margin-bottom: 0.5rem;
+  line-height: 1.6;
+}
+
+.formatted-response li::before {
+  content: '▪';
+  position: absolute;
+  left: 0;
+  color: var(--accent);
+  font-size: 1.2em;
+}
+
+.formatted-response br {
+  line-height: 2;
+}
+
+/* Make user messages simpler */
+.message.user .message-content {
+  font-family: var(--font-body);
+  line-height: 1.6;
+}

@@ -1,71 +1,28 @@
-frontend/.env
-.env.local
-.env.*.local
-venv/
-env/
-ENV/
-.venv
+# Environment
+.env
 
+# Python
 __pycache__/
-*.py[cod]
-*$py.class
-*.so
-.Python
-pip-log.txt
-pip-delete-this-directory.txt
-.tox/
-.coverage
-.coverage.*
-.cache
-nosetests.xml
-coverage.xml
-*.cover
-.hypothesis/
-.pytest_cache/
-*.egg-info/
-dist/
-build/
+*.pyc
+.venv
+venv/
 
-.vscode/
+# IDE
 .idea/
-*.swp
-*.swo
-*~
-.DS_Store
-.project
-.pydevproject
-.settings/
-*.sublime-project
-*.sublime-workspace
+.vscode/
 
-*.db
-*.sqlite
-*.sqlite3
-database.db
-app/session_store/
-
-logs/
-*.log
-
-node_modules/
-npm-debug.log
-yarn-error.log
-.next/
-out/
-dist/
-build/
-
+# OS
 .DS_Store
 Thumbs.db
 
-*.key
-*.pem
-credentials.json
-secrets.json
+# Node
+node_modules/
+npm-debug.log
 
-uploads/
-temp/
-tmp/
+# Database
+*.db
+*.sqlite3
+postgres_data/
 
-GROQ_API_KEY
-DATABASE_URL
+# Logs
+*.log

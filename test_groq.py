@@ -1,8 +1,8 @@
 from groq import Groq
 
 keys = {
-    "Key 1 (new)": "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",
-    "Key 2 (old)": "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"
+    "Key 1 (new)": " ",
+    "Key 2 (old)": " "
 }
 
 for name, key in keys.items():

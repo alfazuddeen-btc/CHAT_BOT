@@ -1,7 +1,22 @@
 from groq import Groq
-GROQ_API_KEY = "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"
+import os
+from pathlib import Path
+from dotenv import load_dotenv
+
+env_path = Path(__file__).parent.parent.parent / ".env"
+load_dotenv(dotenv_path=env_path, override=True)
+
+GROQ_API_KEY = os.getenv("GROQ_API_KEY")
+
+if not GROQ_API_KEY:
+    print("ERROR: GROQ_API_KEY not found in .env file!")
+    print(f"Looking for .env at: {env_path}")
+    print(f".env exists: {env_path.exists()}")
+else:
+    print(f"GROQ_API_KEY loaded successfully")
 
 client = Groq(api_key=GROQ_API_KEY)
+
 def get_llm_response(prompt: str) -> str:
     try:
         response = client.chat.completions.create(

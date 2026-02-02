@@ -14,7 +14,7 @@ def is_medical_query(query: str) -> bool:
            ["document", "information", "tell me", "explain", "details", "about", "what is", "how"]):
         return True
 
-    prompt = f"""Is this query medical-related? Answer with ONLY: YES or NO
+    prompt = f"""Is this query medical-frelated? Answer with ONLY: YES or NO
 
 Query: "{query}"
 
@@ -34,11 +34,11 @@ def get_rag_response(db, user_id: str, query: str, history: list, language: str 
 
     if not is_medical_query(query):
         if language == "hi":
-            return """❌ मैं केवल चिकित्सा संबंधी प्रश्नों में मदद कर सकता हूं।
+            return """ मैं केवल चिकित्सा संबंधी प्रश्नों में मदद कर सकता हूं।
 
 यदि आपके पास कोई चिकित्सा प्रश्न हैं, तो बेझिझक पूछें।"""
         else:
-            return """❌ I can only help with medical-related questions.
+            return """ I can only help with medical-related questions.
 
 If you have any medical questions, feel free to ask."""
 

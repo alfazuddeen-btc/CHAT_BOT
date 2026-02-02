@@ -45,7 +45,6 @@
   line-height: 2;
 }
 
-/* Make user messages simpler */
 .message.user .message-content {
   font-family: var(--font-body);
   line-height: 1.6;

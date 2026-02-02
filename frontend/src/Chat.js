@@ -6,22 +6,64 @@ const translations = {
   en: {
     title: "Medical Assistant",
     endSession: "End Session",
-    noConversations: "No conversations yet. Start by asking a medical question.",
     you: "YOU",
     medicalAssistant: "MEDICAL ASSISTANT",
-    placeholder: "Ask your medical question...",
+    placeholder: "Type your response...",
     sending: "Sending...",
     send: "Send",
+    welcome: `👋 Welcome to Medical Assistant
+
+I'm your intelligent medical assistant powered by AI. I can help you with:
+
+✅ Medical questions and information
+✅ Health advice and guidance
+✅ Disease information and symptoms
+✅ Wellness tips
+
+⚠️ Important: I provide general medical information, not professional diagnosis. Always consult a doctor for serious concerns.
+
+Before we proceed, I need your consent to store our conversation data.
+
+📋 Consent Required
+
+To continue, please provide your consent:
+
+Your data will be:
+- Stored securely in our encrypted database
+- Used only for medical assistance
+- Never shared with third parties
+
+Type: "I agree" or "I consent"`,
   },
   hi: {
     title: "चिकित्सा सहायक",
     endSession: "सत्र समाप्त करें",
-    noConversations: "अभी तक कोई बातचीत नहीं। चिकित्सा प्रश्न पूछकर शुरू करें।",
     you: "आप",
     medicalAssistant: "चिकित्सा सहायक",
-    placeholder: "अपना चिकित्सा प्रश्न पूछें...",
+    placeholder: "अपना उत्तर टाइप करें...",
     sending: "भेज रहे हैं...",
     send: "भेजें",
+    welcome: `👋 चिकित्सा सहायक में आपका स्वागत है
+
+मैं आपका AI-संचालित चिकित्सा सहायक हूं। मैं आपकी मदद कर सकता हूं:
+
+✅ चिकित्सा प्रश्न और जानकारी
+✅ स्वास्थ्य सलाह
+✅ रोग की जानकारी
+✅ स्वास्थ्य सुझाव
+
+⚠️ महत्वपूर्ण: मैं सामान्य चिकित्सा जानकारी देता हूं, निदान नहीं। गंभीर समस्याओं के लिए हमेशा डॉक्टर से मिलें।
+
+📋 सहमति आवश्यक
+
+जारी रखने के लिए, कृपया सहमति दें:
+
+आपका डेटा:
+- हमारे एन्क्रिप्टेड डेटाबेस में सुरक्षित रूप से संग्रहीत
+- केवल चिकित्सा सहायता के लिए उपयोग
+- किसी से साझा नहीं किया जाएगा
+
+टाइप करें: "सहमत हूं" या "मैं सहमत हूं"`,
   },
 };
 
@@ -39,6 +81,63 @@ function Chat({ logout }) {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
+
+const loadChatHistory = async () => {
+  const user_id = localStorage.getItem("user_id");
+
+  if (!user_id) {
+    setLoading(false);
+    return;
+  }
+
+  try {
+    const response = await fetch(`${API_URL}/chat/history/user/${user_id}`);
+    if (response.ok) {
+      const data = await response.json();
+
+      if (data.messages.length === 0) {
+        setMessages([{
+          sender: "bot",
+          text: `👋 **Welcome to Medical Assistant**
+
+I'm your intelligent medical assistant powered by AI. I can help you with:
+
+✅ Medical questions and information
+✅ Health advice and guidance
+✅ Disease information and symptoms
+✅ Wellness tips
+
+⚠️ **Important:** I provide general medical information, not professional diagnosis. Always consult a doctor for serious concerns.
+
+Before we proceed, I need your consent to store our conversation data
+
+        consent_prompt: 📋 **Consent Required**
+
+To continue, please provide your consent:
+
+Your data will be:
+• Stored securely in our encrypted database
+• Used only for medical assistance
+• Never shared with third parties
+
+Type: **I agree** or **I consent**`
+        }]);
+      } else {
+        const previousMessages = [];
+        data.messages.forEach((msg) => {
+          previousMessages.push({ sender: "user", text: msg.message });
+          previousMessages.push({ sender: "bot", text: msg.response });
+        });
+        setMessages(previousMessages);
+      }
+    }
+  } catch (error) {
+    console.error("Error loading chat history:", error);
+  } finally {
+    setLoading(false);
+  }
+};
+
   useEffect(() => {
     loadChatHistory();
   }, []);
@@ -46,35 +145,6 @@ function Chat({ logout }) {
   useEffect(() => {
     scrollToBottom();
   }, [messages, isLoading]);
-
-  const loadChatHistory = async () => {
-    const user_id = localStorage.getItem("user_id");
-
-    if (!user_id) {
-      setLoading(false);
-      return;
-    }
-
-    try {
-      const response = await fetch(`${API_URL}/chat/history/user/${user_id}`);
-
-      if (response.ok) {
-        const data = await response.json();
-
-        const previousMessages = [];
-        data.messages.forEach((msg) => {
-          previousMessages.push({ sender: "user", text: msg.message });
-          previousMessages.push({ sender: "bot", text: msg.response });
-        });
-
-        setMessages(previousMessages);
-      }
-    } catch (error) {
-      console.error("Error loading chat history:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const formatBotResponse = (text) => {
     let formatted = text;
@@ -186,47 +256,42 @@ function Chat({ logout }) {
         marginBottom: "20px",
         padding: "10px"
       }}>
-        {messages.length === 0 ? (
-          <p style={{ textAlign: "center", color: "#999", padding: "3rem" }}>
-            {t.noConversations}
-          </p>
-        ) : (
-          messages.map((m, i) => (
-            <div key={i} style={{
-              marginBottom: "30px",
-              display: "flex",
-              flexDirection: "column",
-              alignItems: m.sender === "user" ? "flex-end" : "flex-start"
+        {messages.map((m, i) => (
+          <div key={i} style={{
+            marginBottom: "30px",
+            display: "flex",
+            flexDirection: "column",
+            alignItems: m.sender === "user" ? "flex-end" : "flex-start"
+          }}>
+
+            <div style={{
+              fontSize: "0.75rem",
+              fontWeight: "bold",
+              textTransform: "uppercase",
+              color: m.sender === "user" ? "#0066cc" : "#00aa00",
+              marginBottom: "8px",
+              letterSpacing: "1px"
             }}>
-
-              <div style={{
-                fontSize: "0.75rem",
-                fontWeight: "bold",
-                textTransform: "uppercase",
-                color: m.sender === "user" ? "#0066cc" : "#00aa00",
-                marginBottom: "8px",
-                letterSpacing: "1px"
-              }}>
-                {m.sender === "user" ? t.you : t.medicalAssistant}
-              </div>
-
-              <div style={{
-                maxWidth: "85%",
-                padding: "15px 20px",
-                borderRadius: "12px",
-                background: m.sender === "user" ? "#e3f2fd" : "#f5f5f5",
-                border: m.sender === "user" ? "2px solid #0066cc" : "2px solid #ddd",
-                boxShadow: "0 2px 8px rgba(0,0,0,0.1)"
-              }}>
-                {m.sender === "bot" ? (
-                  <div dangerouslySetInnerHTML={{ __html: formatBotResponse(m.text) }} />
-                ) : (
-                  <div style={{ fontSize: "1rem", lineHeight: "1.6" }}>{m.text}</div>
-                )}
-              </div>
+              {m.sender === "user" ? t.you : t.medicalAssistant}
             </div>
-          ))
-        )}
+
+            <div style={{
+              maxWidth: "85%",
+              padding: "15px 20px",
+              borderRadius: "12px",
+              background: m.sender === "user" ? "#e3f2fd" : "#f5f5f5",
+              border: m.sender === "user" ? "2px solid #0066cc" : "2px solid #ddd",
+              boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+              wordWrap: "break-word"
+            }}>
+              {m.sender === "bot" ? (
+                <div dangerouslySetInnerHTML={{ __html: formatBotResponse(m.text) }} />
+              ) : (
+                <div style={{ fontSize: "1rem", lineHeight: "1.6" }}>{m.text}</div>
+              )}
+            </div>
+          </div>
+        ))}
 
         {isLoading && (
           <div style={{
@@ -330,29 +395,9 @@ function Chat({ logout }) {
             transform: scale(1.2);
           }
         }
-
-        .formatted-response p {
-          margin-bottom: 1rem;
-          line-height: 1.7;
-        }
-        .formatted-response strong {
-          display: block;
-          font-weight: bold;
-          font-size: 1.1em;
-          margin: 1.2rem 0 0.5rem 0;
-          color: #333;
-        }
-        .formatted-response ul {
-          margin: 0.8rem 0;
-          padding-left: 1.5rem;
-        }
-        .formatted-response li {
-          margin-bottom: 0.5rem;
-          line-height: 1.6;
-        }
       `}</style>
     </div>
   );
 }
 
-export default Chat
+export default Chat;

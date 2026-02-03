@@ -1,7 +1,7 @@
 import { useState } from "react";
 import "./Login.css";
 
-const API_URL = process.env.REACT_APP_API_URL;
+const API_URL = process.env.REACT_APP_API_URL || "http://127.0.0.1:8000";
 
 function Login({ onLogin }) {
   const [error, setError] = useState("");
@@ -35,16 +35,16 @@ function Login({ onLogin }) {
         crypto.randomUUID?.() ||
         Math.random().toString(36).substring(2);
 
-      localStorage.setItem("name", name);
-      localStorage.setItem("dob", dob);
-      localStorage.setItem("pin", pin);
-      localStorage.setItem("session_id", session_id);
+      localStorage.setItem("access_token", data.access_token);  // JWT token
       localStorage.setItem("user_id", data.user_id);
+      localStorage.setItem("user_name", data.name);
+      localStorage.setItem("session_id", session_id);
 
+
+      console.log("Login successful with JWT token");
       onLogin();
     } catch (err) {
       setError("Network error. Backend not reachable.");
-    } finally {
       setLoading(false);
     }
   };
@@ -75,7 +75,7 @@ function Login({ onLogin }) {
         </button>
 
         <div className="login-footer">
-          Your data is private & session-based
+          Your data is encrypted with JWT tokens
         </div>
       </form>
     </div>

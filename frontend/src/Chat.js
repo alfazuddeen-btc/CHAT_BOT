@@ -81,62 +81,52 @@ function Chat({ logout }) {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
+  const loadChatHistory = async () => {
+    const token = localStorage.getItem("access_token");
+    const user_id = localStorage.getItem("user_id");
 
-const loadChatHistory = async () => {
-  const user_id = localStorage.getItem("user_id");
-
-  if (!user_id) {
-    setLoading(false);
-    return;
-  }
-
-  try {
-    const response = await fetch(`${API_URL}/chat/history/user/${user_id}`);
-    if (response.ok) {
-      const data = await response.json();
-
-      if (data.messages.length === 0) {
-        setMessages([{
-          sender: "bot",
-          text: `👋 **Welcome to Medical Assistant**
-
-I'm your intelligent medical assistant powered by AI. I can help you with:
-
-✅ Medical questions and information
-✅ Health advice and guidance
-✅ Disease information and symptoms
-✅ Wellness tips
-
-⚠️ **Important:** I provide general medical information, not professional diagnosis. Always consult a doctor for serious concerns.
-
-Before we proceed, I need your consent to store our conversation data
-
-        consent_prompt: 📋 **Consent Required**
-
-To continue, please provide your consent:
-
-Your data will be:
-• Stored securely in our encrypted database
-• Used only for medical assistance
-• Never shared with third parties
-
-Type: **I agree** or **I consent**`
-        }]);
-      } else {
-        const previousMessages = [];
-        data.messages.forEach((msg) => {
-          previousMessages.push({ sender: "user", text: msg.message });
-          previousMessages.push({ sender: "bot", text: msg.response });
-        });
-        setMessages(previousMessages);
-      }
+    if (!token || !user_id) {
+      setLoading(false);
+      return;
     }
-  } catch (error) {
-    console.error("Error loading chat history:", error);
-  } finally {
-    setLoading(false);
-  }
-};
+
+    try {
+      const response = await fetch(`${API_URL}/chat/history/user/${user_id}`, {
+        headers: {
+          "Authorization": `Bearer ${token}`  // Send JWT token
+        }
+      });
+
+      if (response.status === 401) {
+        // Token expired or invalid
+        alert("Session expired. Please login again.");
+        handleLogout();
+        return;
+      }
+
+      if (response.ok) {
+        const data = await response.json();
+
+        if (data.messages.length === 0) {
+          setMessages([{
+            sender: "bot",
+            text: t.welcome
+          }]);
+        } else {
+          const previousMessages = [];
+          data.messages.forEach((msg) => {
+            previousMessages.push({ sender: "user", text: msg.message });
+            previousMessages.push({ sender: "bot", text: msg.response });
+          });
+          setMessages(previousMessages);
+        }
+      }
+    } catch (error) {
+      console.error("Error loading chat history:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     loadChatHistory();
@@ -163,6 +153,15 @@ Type: **I agree** or **I consent**`
   const sendMessage = async () => {
     if (!input.trim()) return;
 
+    const token = localStorage.getItem("access_token");
+    const session_id = localStorage.getItem("session_id");
+
+    if (!token) {
+      alert("Session expired. Please login again.");
+      handleLogout();
+      return;
+    }
+
     const userMsg = { sender: "user", text: input };
     setMessages((prev) => [...prev, userMsg]);
     const currentInput = input;
@@ -172,16 +171,22 @@ Type: **I agree** or **I consent**`
     try {
       const res = await fetch(`${API_URL}/chat`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`  // Send JWT token (NO credentials!)
+        },
         body: JSON.stringify({
-          name: localStorage.getItem("name"),
-          dob: localStorage.getItem("dob"),
-          pin: localStorage.getItem("pin"),
-          session_id: localStorage.getItem("session_id"),
           message: currentInput,
+          session_id: session_id,
           language: language,
         }),
       });
+
+      if (res.status === 401) {
+        alert("Session expired. Please login again.");
+        handleLogout();
+        return;
+      }
 
       if (!res.ok) {
         throw new Error("Failed to send message");
@@ -198,7 +203,7 @@ Type: **I agree** or **I consent**`
   };
 
   const handleLogout = () => {
-    localStorage.clear();
+    localStorage.clear();  // Clear JWT token and all data
     logout();
   };
 
@@ -217,7 +222,12 @@ Type: **I agree** or **I consent**`
         borderBottom: "2px solid #333",
         paddingBottom: "15px"
       }}>
-        <h2 style={{ margin: 0, fontSize: "1.8rem" }}>{t.title}</h2>
+        <h2 style={{ margin: 0, fontSize: "1.8rem" }}>
+          {t.title}
+          <span style={{ fontSize: "0.7rem", color: "#666", marginLeft: "10px" }}>
+             Secured with JWT
+          </span>
+        </h2>
 
         <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
           <select

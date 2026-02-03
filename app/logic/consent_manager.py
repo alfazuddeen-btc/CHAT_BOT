@@ -1,6 +1,5 @@
 from datetime import datetime
 from app.models.consent import Consent
-from app.core.session_memory import clear_session
 
 def has_active_consent(db, user_id: str) -> bool:
     consent = db.query(Consent).filter(Consent.user_id == user_id).first()

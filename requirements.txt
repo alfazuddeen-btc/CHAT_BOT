@@ -12,3 +12,12 @@ python-docx==0.8.11
 passlib==1.7.4
 bcrypt==4.1.1
 python-multipart==0.0.6
+
+# LangChain dependencies
+langchain==0.1.0
+langchain-groq==0.0.1
+langchain-community==0.0.12
+
+# JWT dependencies
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4

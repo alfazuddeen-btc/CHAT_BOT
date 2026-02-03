@@ -1,6 +1,5 @@
 from app.core.llm import get_llm_response
 
-
 def classify_intent(query: str) -> str:
     if not query or len(query.strip()) < 2:
         return "GREETING"

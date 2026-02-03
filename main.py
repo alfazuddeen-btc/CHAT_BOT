@@ -10,7 +10,6 @@ from app.models.chat import Chat
 from app.models.consent import Consent
 from app.models.document import Document
 
-
 try:
     from app.logic import user_summary as user_summary_module
 

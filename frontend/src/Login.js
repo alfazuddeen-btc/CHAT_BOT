@@ -35,11 +35,10 @@ function Login({ onLogin }) {
         crypto.randomUUID?.() ||
         Math.random().toString(36).substring(2);
 
-      localStorage.setItem("access_token", data.access_token);  // JWT token
+      localStorage.setItem("access_token", data.access_token);
       localStorage.setItem("user_id", data.user_id);
       localStorage.setItem("user_name", data.name);
       localStorage.setItem("session_id", session_id);
-
 
       console.log("Login successful with JWT token");
       onLogin();
@@ -51,7 +50,7 @@ function Login({ onLogin }) {
 
   return (
     <div className="login-container">
-      <form className="login-card" onSubmit={handleSubmit}>
+      <form className="login-card" onSubmit={handleSubmit} autoComplete="off">
         <div className="login-title">Medical Assistant</div>
         <div className="login-subtitle">
           Secure medical chat powered by AI
@@ -59,8 +58,22 @@ function Login({ onLogin }) {
 
         {error && <div className="error-message">{error}</div>}
 
-        <input name="name" placeholder="Full Name" required disabled={loading} />
-        <input name="dob" type="date" required disabled={loading} />
+        <input
+          name="name"
+          placeholder="Full Name"
+          required
+          disabled={loading}
+          autoComplete="off"
+        />
+
+        <input
+          name="dob"
+          type="date"
+          required
+          disabled={loading}
+          autoComplete="off"
+        />
+
         <input
           name="pin"
           type="password"
@@ -68,6 +81,7 @@ function Login({ onLogin }) {
           placeholder="4-digit PIN"
           required
           disabled={loading}
+          autoComplete="new-password"
         />
 
         <button type="submit" disabled={loading}>

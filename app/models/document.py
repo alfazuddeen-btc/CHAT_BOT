@@ -1,13 +1,10 @@
-from sqlalchemy import Column, Integer, Text, JSON
-from pgvector.sqlalchemy import Vector
+from sqlalchemy import Column, Text, Integer
 from app.core.database import Base
+from pgvector.sqlalchemy import Vector
 
 class Document(Base):
     __tablename__ = "documents"
 
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(Integer, primary_key=True, autoincrement=True)
     content = Column(Text, nullable=False)
-    embedding = Column(Vector(dim=384), nullable=False)
-    metadata_json = Column(JSON, nullable=True)
-
-    doc_metadata = Column(JSON, nullable=True)
+    embedding = Column(Vector(384), nullable=True)

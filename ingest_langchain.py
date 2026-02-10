@@ -3,7 +3,6 @@ from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_core.documents import Document
 from app.core.database import SessionLocal
 from app.models.document import Document as DBDocument
-from app.rag.chunker import chunk_document
 import os
 from dotenv import load_dotenv
 
@@ -19,8 +18,8 @@ DATABASE_URL = os.getenv(
     "postgresql://postgres:123@localhost:5434/postgres"
 )
 
-def ingest_to_langchain():
 
+def ingest_to_langchain():
     db = SessionLocal()
 
     print("=" * 60)
@@ -32,8 +31,9 @@ def ingest_to_langchain():
         print(f"\nFound {len(docs)} documents in database")
 
         if len(docs) == 0:
-            print(" No documents in database! Run add_sample_docs_ENHANCED.py first")
+            print(" No documents in database! Run add_documents_simple.py first")
             return
+
         connection_string = DATABASE_URL.replace("+psycopg2", "")
 
         vector_store = PGVector(
@@ -44,10 +44,9 @@ def ingest_to_langchain():
 
         langchain_docs = []
         for doc in docs:
-            import json
             langchain_doc = Document(
                 page_content=doc.content,
-                metadata={"source": "document", "topic": "medical"}
+                metadata={"source": "medical_document", "topic": "medical"}
             )
             langchain_docs.append(langchain_doc)
 
@@ -66,6 +65,7 @@ def ingest_to_langchain():
         traceback.print_exc()
     finally:
         db.close()
+
 
 if __name__ == "__main__":
     print("This will ingest documents from database to LangChain PGVector")

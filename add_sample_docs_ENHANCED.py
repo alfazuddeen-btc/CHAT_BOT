@@ -1,194 +1,199 @@
 from app.core.database import SessionLocal
 from app.models.document import Document
-from app.rag.vector_store import VectorStore
-from app.rag.chunker import chunk_document
+from sentence_transformers import SentenceTransformer
+import logging
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s | %(levelname)s | %(message)s"
+)
+logger = logging.getLogger(__name__)
+
+model = SentenceTransformer("all-MiniLM-L6-v2")
 
 
-def clear_and_add_test_hospital():
+def add_documents():
     db = SessionLocal()
 
-    print("=" * 60)
-    print("CLEARING ALL EXISTING DOCUMENTS")
-    print("=" * 60)
+    logger.info("=" * 60)
+    logger.info("ADDING MEDICAL DOCUMENTS WITH EMBEDDINGS")
+    logger.info("=" * 60)
 
     try:
         count = db.query(Document).count()
-        print(f"Found {count} existing documents")
+        logger.info(f"Found {count} existing documents")
+
         db.query(Document).delete()
         db.commit()
-        print(f"Deleted all {count} documents")
-    except Exception as e:
-        print(f"Error deleting documents: {e}")
+        logger.info("Documents cleared")
+    except Exception:
+        logger.exception("Failed to clear documents")
         db.rollback()
+        db.close()
         return
 
-    print()
-    print("=" * 60)
-    print("ADDING TEST HOSPITAL DATA WITH CHUNKING")
-    print("=" * 60)
-
-    vector_store = VectorStore()
-    vector_store.set_db(db)
-
-    # Expanded documents with more medical content
     documents = [
-        {
-            "content": """Hypertension (High Blood Pressure):
-Hypertension is a condition where blood pressure in the arteries is persistently elevated.
-Normal blood pressure is below 120/80 mmHg.
-Stage 1 hypertension: 130-139/80-89 mmHg.
-Stage 2 hypertension: 140/90 mmHg or higher.
-Symptoms may include headaches, shortness of breath, or nosebleeds.
-Risk factors include obesity, high salt intake, lack of exercise, stress, and family history.
-Treatment includes lifestyle changes and medications like ACE inhibitors, beta-blockers, or diuretics.
-Prevention involves regular exercise, reducing salt intake, managing stress, and maintaining healthy weight.
-Complications of untreated hypertension include heart disease, stroke, kidney damage, and vision problems.
-Regular blood pressure monitoring is essential for early detection and management.""",
-            "metadata": {"source": "hypertension_guide.txt", "topic": "medical"}
-        },
-        {
-            "content": """Diabetes Mellitus - Types and Management:
-Diabetes is a metabolic disorder characterized by elevated blood glucose levels.
-Type 1 Diabetes: Autoimmune condition where pancreas cannot produce insulin. Usually diagnosed in children and young adults. Requires insulin therapy for survival.
-Type 2 Diabetes: Most common form, accounting for 90% of cases. Related to insulin resistance and lifestyle factors. Can often be managed with diet, exercise, and medications.
-Gestational Diabetes: Occurs during pregnancy and increases risk of Type 2 diabetes later.
-Symptoms include excessive thirst, frequent urination, fatigue, blurred vision, and slow healing wounds.
-Diagnosis involves blood glucose tests, HbA1c test, and oral glucose tolerance test.
-Management includes blood sugar monitoring, medication, diet control, regular exercise, and foot care.
-Complications include heart disease, stroke, kidney disease, diabetic retinopathy, and neuropathy.
-Prevention in Type 2 involves weight management, physical activity, and healthy diet.
-Regular check-ups with endocrinologist are recommended for optimal control.""",
-            "metadata": {"source": "diabetes_guide.txt", "topic": "medical"}
-        },
-        {
-            "content": """Heart Disease and Cardiac Conditions:
-Coronary Artery Disease (CAD) is the most common type of heart disease.
-It occurs when plaque builds up in coronary arteries, reducing blood flow to the heart.
-Risk factors include high blood pressure, high cholesterol, smoking, diabetes, obesity, and family history.
-Symptoms may include chest pain (angina), shortness of breath, and heart attack warning signs.
-Heart attack symptoms include severe chest pain, arm pain, jaw pain, nausea, and sweating.
-Treatment includes medications, lifestyle changes, and procedures like angioplasty or bypass surgery.
-Atrial Fibrillation (AFib) is an irregular heartbeat that increases stroke risk.
-Heart failure occurs when the heart cannot pump blood effectively.
-Valve diseases affect the heart's one-way valves.
-Prevention involves maintaining healthy weight, not smoking, managing stress, and regular exercise.
-Warning signs require immediate medical attention and emergency care.""",
-            "metadata": {"source": "heart_disease_guide.txt", "topic": "medical"}
-        },
-        {
-            "content": """About MediCare Elite Hospital Bangalore:
-MediCare Elite Hospital is a fictional premium healthcare facility located at Electronic City Phase 2, Bangalore.
-Establishment: Founded in January 2025.
-Address: Plot 42, Sector 7, Electronic City Phase 2, Bangalore - 560100.
-Contact: +91-80-4567-8900.
-Email: contact@medicareelite.in.
-Website: www.medicareelite.in.
-Specializations: Cardiology Department headed by Dr. Rajesh Kumar (20 years experience), Neurology Department headed by Dr. Priya Sharma (15 years experience), Orthopedics headed by Dr. Amit Patel (18 years experience), Endocrinology Department for Diabetes Management, Nephrology for Kidney Diseases.
-Facilities: 24/7 Emergency with air-conditioned ambulances, 150-bed capacity including 30 ICU beds, 5 state-of-the-art operation theatres, In-house pharmacy and diagnostic center, Free WiFi for all patients, Cafeteria with healthy food options.
-Unique Features: First hospital in Bangalore with AI-powered diagnosis system, Rooftop helipad for emergency air ambulance, Dedicated COVID-19 isolation ward with 25 beds, Mobile app "MediCare Connect" for appointment booking, Telemedicine services available, Patient education programs, Support groups for chronic diseases.""",
-            "metadata": {"source": "medicare_elite_hospital.txt", "topic": "hospital"}
-        },
-        {
-            "content": """MediCare Elite Hospital - Department of Cardiology:
-Head of Department: Dr. Rajesh Kumar, MD, DM (Cardiology).
-20 years of experience in interventional cardiology.
-Trained at Johns Hopkins Hospital, USA.
-Performed over 5,000 angioplasty procedures.
-Specializes in complex coronary interventions and arrhythmia management.
-Department Statistics: 500+ cardiac procedures performed monthly, 95% success rate in emergency angioplasty, Average waiting time for OPD: 30 minutes, Emergency response time: Under 10 minutes.
-Equipment: Latest Siemens Artis Zee Cath Lab with AI assistance, 3D Echocardiography machines (2 units), Cardiac CT Scanner - GE Revolution 256-slice, 24/7 ECG monitoring in all cardiac beds, Advanced stress testing equipment.
-Special Programs: Free heart health checkup every Sunday from 9 AM - 12 PM, Cardiac rehabilitation program with 6-month follow-up, School heart screening program (screening 500+ students monthly), Diabetes-Heart Disease Management Clinic (Wednesdays), Post-MI support group, Lifestyle modification program.
-Consultation Timings: Dr. Rajesh Kumar: Monday to Friday, 10 AM - 1 PM, 4 PM - 7 PM. Dr. Anita Desai (Associate): Monday to Saturday, 9 AM - 2 PM. Emergency Cardiology: 24/7 with on-call cardiologist.
-Consultation Fees: First consultation: ₹800, Follow-up: ₹500, Emergency consultation: ₹1,500.""",
-            "metadata": {"source": "medicare_cardiology.txt", "topic": "cardiology"}
-        },
-        {
-            "content": """MediCare Elite Hospital - Department of Endocrinology (Diabetes & Metabolic Disorders):
-Head of Department: Dr. Sneha Mehta, MD, DM (Endocrinology).
-15 years of experience in diabetes management and metabolic disorders.
-Specializes in insulin therapy, Type 1 and Type 2 diabetes, PCOS, and thyroid disorders.
-Department Statistics: 300+ diabetes patients managed monthly, 90% HbA1c control rate, Average consultation time: 45 minutes.
-Services: Type 1 & Type 2 Diabetes Management, Gestational Diabetes Screening and Management, Thyroid Disorders (Hyperthyroidism, Hypothyroidism), Polycystic Ovary Syndrome (PCOS), Obesity Management, Metabolic Syndrome Management.
-Equipment: Advanced glucose monitoring devices, Continuous Glucose Monitoring (CGM) systems, Insulin pump therapy, Thyroid ultrasound machine.
-Special Programs: Diabetes Education Classes (twice weekly), Nutrition Counseling, Diabetes Support Groups, Insulin Training Workshops, Lifestyle Modification Program for Weight Management, PCOS Management Program.
-Consultation Timings: Dr. Sneha Mehta: Tuesday to Saturday, 10 AM - 1 PM, 3 PM - 6 PM. Dr. Vikram Singh (Associate): Monday to Friday, 2 PM - 5 PM.
-Consultation Fees: First consultation: ₹600, Follow-up: ₹400, Group sessions: ₹200 per person.""",
-            "metadata": {"source": "medicare_endocrinology.txt", "topic": "endocrinology"}
-        },
-        {
-            "content": """MediCare Elite Hospital - Patient Services & Appointment System:
-ONLINE APPOINTMENT BOOKING: Book through "MediCare Connect" app (Available on iOS and Android), Select department and doctor, Choose preferred time slot from available options, Pay ₹200 booking fee online (refundable), Get instant confirmation SMS, Receive reminder notification 1 hour before appointment, Reschedule or cancel anytime.
-WALK-IN REGISTRATION: Reception Counter at Ground Floor, Timing 8 AM - 8 PM daily (including weekends), Token system for walk-in patients, Average wait time: 45 minutes, Priority given to emergency cases.
-EMERGENCY SERVICES: 24/7 Emergency Department with dedicated trauma center, Direct admission without appointment for emergencies, Fully equipped ambulance with advanced life support, Paramedics available for on-site assistance, Emergency hotline: +91-80-4567-9911, Average response time: 10 minutes.
-TELEMEDICINE SERVICES: Video consultations with doctors, Available for follow-ups and non-emergency cases, Prescription delivery to home, Report access through app.
-INPATIENT FACILITIES: Private and semi-private rooms, Room service with nutritious meals, 24/7 nursing care, WiFi and entertainment facilities, Visitor guidelines and timings.""",
-            "metadata": {"source": "medicare_services.txt", "topic": "services"}
-        },
-        {
-            "content": """MediCare Elite Hospital - Health Packages and Pricing:
-BASIC HEALTH CHECKUP PACKAGE: ₹2,999. Includes: Complete Blood Count (CBC), Lipid Profile (Cholesterol, Triglycerides), Blood Sugar (Fasting and Post-meal), Kidney Function Tests (Creatinine, BUN, eGFR), Liver Function Tests (Bilirubin, Albumin, AST, ALT), Thyroid Function (TSH), Electrocardiogram (ECG), Doctor Consultation and Health Report.
-CARDIAC HEALTH PACKAGE: ₹5,999. Includes: All Basic tests, 2D Echocardiography (heart ultrasound), TMT (Treadmill Test), Holter Monitor (24-hour ECG), Cardiologist Consultation, Dietary Chart for Heart Health, Follow-up appointment.
-DIABETES MANAGEMENT PACKAGE: ₹4,499. Includes: Fasting Blood Sugar, Post-meal Blood Sugar, HbA1c (3-month glucose average), Kidney Function Test (for diabetes complications), Eye Checkup with Retinopathy Screening, Foot Examination, Endocrinologist Consultation, Diabetic Diet Plan, Diabetes Education Session.
-WELLNESS PACKAGE: ₹3,499. Includes: All Basic tests, BMI and Body Composition Analysis, Fitness Assessment, Nutritionist Consultation, Mental Health Screening, Stress Management Session, Lifestyle Counseling.
-SENIOR CITIZEN PACKAGE (Age 60+): ₹6,999. Includes: All Basic tests, Cardiac evaluation, Bone density scan, Memory assessment, Vision and Hearing tests, Senior Physician Consultation, Comprehensive Health Report.
-CORPORATE PACKAGES: Bulk discounts available (5+ employees). Onsite health camps, Regular follow-up programs, Employee wellness programs.""",
-            "metadata": {"source": "medicare_packages.txt", "topic": "services"}
-        },
-        {
-            "content": """MediCare Elite Hospital - Insurance and Payment Options:
-INSURANCE ACCEPTED: All major health insurance companies (ICICI Lombard, HDFC Ergo, Apollo DKV, Star Health, Max Bupa, Aditya Birla Health, Royal Sundaram).
-INSURANCE FEATURES: Cashless facility available at our center, Direct billing to insurance company, Pre-authorization support, Claim assistance by dedicated staff, Network hospital for major insurers.
-GOVERNMENT SCHEMES: Ayushman Bharat Pradhan Mantri Jan Arogya Yojana (PM-JAY), Karnataka Arogya scheme, RSBY (Rajiv Gandhi Scheme for Vulnerable Groups).
-INTERNATIONAL INSURANCE: Accepts international health insurance through Third Party Administrator (TPA), Coverage for international patients, Multilingual staff available.
-PAYMENT METHODS: Cash (at reception), Credit Card (Visa, Mastercard, Amex), Debit Card (all banks), UPI (Google Pay, PhonePe, Paytm), Net Banking (all major banks), Cheque (for advance payments).
-MEDICAL LOANS: Available through Bajaj Finserv (0% interest for 3 months), ICICI Personal Loans for medical procedures, SBI healthcare loans.
-EMI OPTIONS: Available for surgeries and procedures above ₹50,000, Flexible payment plans (3, 6, 12 months), No processing fee for hospital procedures.
-DISCOUNTS: Senior citizen discount (5%), Group discount (3% for family packages), Referral bonus (₹500 for successful referral), Loyalty program for regular patients.""",
-            "metadata": {"source": "medicare_insurance.txt", "topic": "services"}
-        }
+        # Consultation Fees
+        "Cardiology consultation fee is ₹800 for first visit and ₹500 for follow-up.",
+        "General physician consultation fee is ₹500.",
+        "Pediatrician consultation fee is ₹600 for first visit and ₹400 for follow-up.",
+        "Dermatologist consultation fee is ₹700 for first visit and ₹450 for follow-up.",
+        "Orthopedic consultation fee is ₹900 for first visit and ₹600 for follow-up.",
+        "Neurologist consultation fee is ₹1000 for first visit and ₹700 for follow-up.",
+        "Gynecologist consultation fee is ₹750 for first visit and ₹500 for follow-up.",
+        "ENT specialist consultation fee is ₹650 for first visit and ₹450 for follow-up.",
+        "Ophthalmologist consultation fee is ₹600 for first visit and ₹400 for follow-up.",
+        "Psychiatrist consultation fee is ₹1200 for first visit and ₹800 for follow-up.",
+        "Dentist consultation fee is ₹500 for checkup and ₹800 for procedures.",
+        "Urologist consultation fee is ₹850 for first visit and ₹550 for follow-up.",
+
+        # Diagnostic Tests - Imaging
+        "MRI scan costs range from ₹4500 to ₹8000 depending on body part.",
+        "CT scan costs approximately ₹3000 to ₹6000.",
+        "X-ray costs ₹250 to ₹500 depending on area.",
+        "Ultrasound scan costs ₹1500 to ₹2500.",
+        "Mammography costs ₹2000 to ₹3000.",
+        "PET scan costs ₹18000 to ₹25000.",
+        "Bone density scan (DEXA) costs ₹2500 to ₹3500.",
+        "3D/4D ultrasound costs ₹3000 to ₹5000.",
+
+        # Diagnostic Tests - Cardiology
+        "ECG test costs ₹300 to ₹500.",
+        "2D Echo (Echocardiogram) costs ₹2000 to ₹3000.",
+        "Stress test (TMT) costs ₹2500 to ₹3500.",
+        "Holter monitoring (24-hour) costs ₹3000 to ₹4000.",
+
+        # Blood Tests
+        "Blood test packages start from ₹1200.",
+        "Complete blood count (CBC) costs ₹300 to ₹500.",
+        "Lipid profile test costs ₹600 to ₹800.",
+        "Liver function test (LFT) costs ₹700 to ₹900.",
+        "Kidney function test (KFT) costs ₹700 to ₹900.",
+        "Thyroid profile (T3, T4, TSH) costs ₹800 to ₹1200.",
+        "HbA1c (Diabetes) test costs ₹400 to ₹600.",
+        "Vitamin D test costs ₹1200 to ₹1800.",
+        "Vitamin B12 test costs ₹800 to ₹1200.",
+        "Iron profile test costs ₹1000 to ₹1500.",
+        "Covid-19 RT-PCR test costs ₹500 to ₹800.",
+        "Covid-19 Rapid Antigen test costs ₹300 to ₹500.",
+
+        # Therapy & Rehabilitation
+        "Physiotherapy session costs ₹700 per session.",
+        "Occupational therapy costs ₹800 per session.",
+        "Speech therapy costs ₹900 per session.",
+        "Psychological counseling costs ₹1500 per session.",
+        "Couples therapy costs ₹2500 per session.",
+        "Family therapy costs ₹3000 per session.",
+
+        # Surgical Procedures
+        "Appendectomy surgery costs ₹40000 to ₹80000.",
+        "Cataract surgery costs ₹25000 to ₹50000 per eye.",
+        "Hernia repair surgery costs ₹50000 to ₹100000.",
+        "Gallbladder removal surgery costs ₹60000 to ₹120000.",
+        "Knee replacement surgery costs ₹200000 to ₹400000.",
+        "Hip replacement surgery costs ₹250000 to ₹500000.",
+        "Cesarean delivery costs ₹50000 to ₹150000.",
+        "Normal delivery costs ₹30000 to ₹80000.",
+
+        # Dental Procedures
+        "Teeth cleaning costs ₹1000 to ₹2000.",
+        "Tooth filling costs ₹800 to ₹2000 per tooth.",
+        "Root canal treatment costs ₹3000 to ₹8000 per tooth.",
+        "Tooth extraction costs ₹500 to ₹2000.",
+        "Dental implant costs ₹25000 to ₹50000 per tooth.",
+        "Teeth whitening costs ₹8000 to ₹15000.",
+        "Braces (orthodontic treatment) costs ₹40000 to ₹100000.",
+
+        # Vaccination
+        "Flu vaccine costs ₹500 to ₹800.",
+        "Hepatitis B vaccine costs ₹300 to ₹500 per dose.",
+        "Tetanus vaccine costs ₹200 to ₹400.",
+        "HPV vaccine costs ₹3000 to ₹4000 per dose.",
+        "Pneumonia vaccine costs ₹3500 to ₹5000.",
+        "Chickenpox vaccine costs ₹1500 to ₹2500.",
+
+        # Emergency Services
+        "Emergency room visit costs ₹2000 to ₹5000.",
+        "Ambulance service costs ₹1000 to ₹3000 depending on distance.",
+        "ICU charges are ₹8000 to ₹15000 per day.",
+        "General ward bed costs ₹2000 to ₹4000 per day.",
+        "Private room costs ₹5000 to ₹10000 per day.",
+
+        # Health Packages
+        "Basic health checkup package costs ₹2500 to ₹4000.",
+        "Comprehensive health checkup costs ₹8000 to ₹12000.",
+        "Executive health checkup costs ₹15000 to ₹25000.",
+        "Cardiac health package costs ₹6000 to ₹10000.",
+        "Diabetic health package costs ₹5000 to ₹8000.",
+        "Women's health package costs ₹7000 to ₹12000.",
+        "Men's health package costs ₹7000 to ₹12000.",
+        "Senior citizen health package costs ₹10000 to ₹15000.",
+
+        # Specialized Tests
+        "Biopsy costs ₹3000 to ₹8000.",
+        "Endoscopy costs ₹5000 to ₹10000.",
+        "Colonoscopy costs ₹8000 to ₹15000.",
+        "Bronchoscopy costs ₹8000 to ₹12000.",
+        "Sleep study (Polysomnography) costs ₹8000 to ₹15000.",
+        "Allergy test panel costs ₹5000 to ₹10000.",
+        "Genetic testing costs ₹15000 to ₹50000.",
+
+        # Hospital Services
+        "Hospital registration fee is ₹200 to ₹500.",
+        "Medical certificate costs ₹200 to ₹500.",
+        "Prescription costs ₹100 to ₹300.",
+        "Home visit by doctor costs ₹1500 to ₹3000.",
+        "Telemedicine consultation costs ₹300 to ₹500.",
+
+        # Insurance Information
+        "Health insurance cashless facility available for all major insurers.",
+        "Mediclaim accepted for hospitalization above 24 hours.",
+        "Corporate health insurance tie-ups available.",
+        "Government health schemes (Ayushman Bharat) accepted.",
+
+        # Hospital Timings
+        "OPD timings are Monday to Saturday 9 AM to 5 PM.",
+        "Emergency services available 24/7.",
+        "Blood bank operates 24/7.",
+        "Pharmacy open 24/7.",
+        "Diagnostic center operates from 7 AM to 9 PM.",
+
+        # Appointment Information
+        "Appointments can be booked online or by calling reception.",
+        "Walk-in patients accepted based on availability.",
+        "Average waiting time for consultation is 20-30 minutes.",
+        "Priority appointments available for senior citizens and pregnant women.",
+        "Follow-up appointments should be scheduled within recommended timeframe.",
     ]
 
-    doc_num = 1
-    total_chunks = 0
+    logger.info("Generating embeddings...")
+    embeddings = model.encode(documents, show_progress_bar=True)
 
-    for doc in documents:
-        # Chunk the document with smaller chunk size for more chunks
-        chunks = chunk_document(doc["content"], chunk_size=250, overlap=40)
+    for i, (content, embedding) in enumerate(zip(documents, embeddings), start=1):
+        try:
+            doc = Document(
+                content=content,
+                embedding=embedding.tolist()
+            )
+            db.add(doc)
+            logger.info(f"Inserted document {i}")
+        except Exception:
+            logger.exception(f"Failed on document {i}")
+            db.rollback()
+            db.close()
+            return
 
-        print(f"\nDocument {doc_num}: {doc['metadata']['source']}")
-        print(f"Split into {len(chunks)} chunks")
-
-        # Add each chunk separately
-        for chunk_idx, chunk in enumerate(chunks):
-            try:
-                vector_store.add_document(
-                    content=chunk,
-                    metadata={
-                        "source": doc["metadata"]["source"],
-                        "topic": doc["metadata"]["topic"],
-                        "chunk_id": chunk_idx
-                    }
-                )
-                print(f"  ✓ Added chunk {chunk_idx + 1}/{len(chunks)} ({len(chunk)} chars)")
-                total_chunks += 1
-            except Exception as e:
-                print(f"  ✗ Error adding chunk {chunk_idx}: {e}")
-
-        doc_num += 1
-
+    db.commit()
     db.close()
-    print("\n" + "=" * 60)
-    print(f"ALL DOCUMENTS CHUNKED AND ADDED SUCCESSFULLY!")
-    print(f"Total chunks created: {total_chunks}")
-    print("=" * 60)
+
+    logger.info("=" * 60)
+    logger.info(f"✅ DOCUMENT INGESTION COMPLETE - {len(documents)} documents added")
+    logger.info("=" * 60)
 
 
 if __name__ == "__main__":
-    print("WARNING: This will DELETE all existing documents!")
-    print("This adds FICTIONAL hospital data with chunking.")
-    print("Are you sure? (yes/no): ", end="")
-
-    if input().strip().lower() == "yes":
-        clear_and_add_test_hospital()
+    confirm = input("Type YES to rebuild document store: ").strip()
+    if confirm == "YES":
+        add_documents()
     else:
         print("Cancelled.")

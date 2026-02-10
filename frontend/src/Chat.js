@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 
-const API_URL = "http://127.0.0.1:8000";
+//const API_URL = "http://127.0.0.1:8000";
+const API_URL = process.env.REACT_APP_API_URL || "http://127.0.0.1:8000";
 
 const translations = {
   en: {
@@ -11,20 +12,20 @@ const translations = {
     placeholder: "Type your response...",
     sending: "Sending...",
     send: "Send",
-    welcome: `👋 Welcome to Medical Assistant
+    welcome: ` Welcome to Medical Assistant
 
 I'm your intelligent medical assistant powered by AI. I can help you with:
 
-✅ Medical questions and information
-✅ Health advice and guidance
-✅ Disease information and symptoms
-✅ Wellness tips
+ Medical questions and information
+ Health advice and guidance
+ Disease information and symptoms
+ Wellness tips
 
-⚠️ Important: I provide general medical information, not professional diagnosis. Always consult a doctor for serious concerns.
+ Important: I provide general medical information, not professional diagnosis. Always consult a doctor for serious concerns.
 
 Before we proceed, I need your consent to store our conversation data.
 
-📋 Consent Required
+ Consent Required
 
 To continue, please provide your consent:
 
@@ -43,18 +44,18 @@ Type: "I agree" or "I consent"`,
     placeholder: "अपना उत्तर टाइप करें...",
     sending: "भेज रहे हैं...",
     send: "भेजें",
-    welcome: `👋 चिकित्सा सहायक में आपका स्वागत है
+    welcome: ` चिकित्सा सहायक में आपका स्वागत है
 
 मैं आपका AI-संचालित चिकित्सा सहायक हूं। मैं आपकी मदद कर सकता हूं:
 
-✅ चिकित्सा प्रश्न और जानकारी
-✅ स्वास्थ्य सलाह
-✅ रोग की जानकारी
-✅ स्वास्थ्य सुझाव
+ चिकित्सा प्रश्न और जानकारी
+ स्वास्थ्य सलाह
+ रोग की जानकारी
+ स्वास्थ्य सुझाव
 
-⚠️ महत्वपूर्ण: मैं सामान्य चिकित्सा जानकारी देता हूं, निदान नहीं। गंभीर समस्याओं के लिए हमेशा डॉक्टर से मिलें।
+ महत्वपूर्ण: मैं सामान्य चिकित्सा जानकारी देता हूं, निदान नहीं। गंभीर समस्याओं के लिए हमेशा डॉक्टर से मिलें।
 
-📋 सहमति आवश्यक
+ सहमति आवश्यक
 
 जारी रखने के लिए, कृपया सहमति दें:
 
@@ -173,7 +174,7 @@ function Chat({ logout }) {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`  // Send JWT token (NO credentials!)
+          "Authorization": `Bearer ${token}`
         },
         body: JSON.stringify({
           message: currentInput,
@@ -203,7 +204,7 @@ function Chat({ logout }) {
   };
 
   const handleLogout = () => {
-    localStorage.clear();  // Clear JWT token and all data
+    localStorage.clear();
     logout();
   };
 

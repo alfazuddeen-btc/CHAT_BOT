@@ -5,7 +5,7 @@ import json
 
 
 class BatchSummarizationMemory:
-    def __init__(self, db, user_id: str, batch_size: int = 4, cache_minutes: int = 2):
+    def __init__(self, db, user_id: str, batch_size: int = 6, cache_minutes: int = 2):
         self.db = db
         self.user_id = user_id
         self.batch_size = batch_size * 2  # Convert pairs to messages
@@ -113,7 +113,6 @@ class BatchSummarizationMemory:
                 self.summary = existing.summary
                 self.summary_updated_at = existing.updated_at
 
-                # ✅ Load batch from database (with fresh summary)
                 self.recent_messages = []
                 print(f"   Attempting to load batch...")
                 self.load_batch_from_database()
@@ -154,7 +153,6 @@ class BatchSummarizationMemory:
             return False
 
     def save_batch_to_database(self):
-        """Save recent_messages to UserBatch table"""
         try:
             from app.models.user_batch import UserBatch
 
@@ -225,7 +223,6 @@ class BatchSummarizationMemory:
         self.save_batch_to_database()
 
     def _summarize_batch(self, messages: List[Dict[str, Any]]) -> str:
-        """Summarize a batch of messages"""
         conversation = ""
         for msg in messages:
             role = "User" if msg["role"] == "user" else "Assistant"
@@ -264,7 +261,6 @@ Merged summary:"""
             return f"{old} {new}"
 
     def get_memory_context(self) -> str:
-        """Get formatted memory context for LLM"""
         context = ""
 
         if self.summary:

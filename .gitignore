@@ -26,3 +26,6 @@ postgres_data/
 
 # Logs
 *.log
+
+# Ignore configuration file
+config.py

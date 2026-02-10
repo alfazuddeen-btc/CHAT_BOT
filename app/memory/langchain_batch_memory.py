@@ -7,7 +7,7 @@ from app.logic.user_summary import UserSummary
 
 
 class LangChainBatchMemory:
-    def __init__(self, db, user_id, batch_size=4, cache_minutes=2):
+    def __init__(self, db, user_id, batch_size=6, cache_minutes=2):
         self.db = db
         self.user_id = user_id
         self.batch_size = batch_size

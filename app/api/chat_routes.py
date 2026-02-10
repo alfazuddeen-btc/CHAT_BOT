@@ -51,7 +51,7 @@
 # Disease information and symptoms
 # Wellness tips
 #
-# ⚠️ **Important:** I provide general medical information, not professional diagnosis. Always consult a doctor for serious concerns.
+#  **Important:** I provide general medical information, not professional diagnosis. Always consult a doctor for serious concerns.
 #
 # Before we proceed, I need your consent to store our conversation data.""",
 #
@@ -520,6 +520,9 @@
 
 
 
+
+
+
 from fastapi import APIRouter, HTTPException, Depends, Security
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel
@@ -865,7 +868,7 @@ async def chat(
                 memory = LangChainBatchMemory(
                     db=db,
                     user_id=user_id,
-                    batch_size=4,
+                    batch_size=6,
                     cache_minutes=2
                 )
 
@@ -938,7 +941,9 @@ Medical context:
 
 Question: {request.message}
 
-Answer based ONLY on the Medical context above:"""
+Respond in a friendly way. If they ask about previous conversations,
+refer to the context above. Keep response short (2-3 sentences).
+Always remind them you provide information, not diagnosis.:"""
 
                 print(f"   Calling LangChain LLM (ChatGroq)...")
                 response = llm.invoke(prompt)
@@ -954,7 +959,7 @@ Answer based ONLY on the Medical context above:"""
                 memory = LangChainBatchMemory(
                     db=db,
                     user_id=user_id,
-                    batch_size=4,
+                    batch_size=6,
                     cache_minutes=2
                 )
 
@@ -1001,7 +1006,7 @@ Respond in a friendly way. Keep response short (2-3 sentences)."""
                 memory = LangChainBatchMemory(
                     db=db,
                     user_id=user_id,
-                    batch_size=4,
+                    batch_size=6,
                     cache_minutes=2
                 )
 
@@ -1019,7 +1024,7 @@ Respond in a friendly way. Keep response short (2-3 sentences)."""
                 memory = LangChainBatchMemory(
                     db=db,
                     user_id=user_id,
-                    batch_size=4,
+                    batch_size=6,
                     cache_minutes=2
                 )
 

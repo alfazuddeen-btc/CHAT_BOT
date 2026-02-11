@@ -75,6 +75,7 @@ function Chat({ logout }) {
   const [isLoading, setIsLoading] = useState(false);
   const [language, setLanguage] = useState("en");
   const messagesEndRef = useRef(null);
+  const inputRef = useRef(null);
 
   const t = translations[language];
 
@@ -94,12 +95,11 @@ function Chat({ logout }) {
     try {
       const response = await fetch(`${API_URL}/chat/history/user/${user_id}`, {
         headers: {
-          "Authorization": `Bearer ${token}`  // Send JWT token
+          "Authorization": `Bearer ${token}`
         }
       });
 
       if (response.status === 401) {
-        // Token expired or invalid
         alert("Session expired. Please login again.");
         handleLogout();
         return;
@@ -126,6 +126,9 @@ function Chat({ logout }) {
       console.error("Error loading chat history:", error);
     } finally {
       setLoading(false);
+      setTimeout(() => {
+        inputRef.current?.focus();
+      }, 100);
     }
   };
 
@@ -200,6 +203,9 @@ function Chat({ logout }) {
       setMessages((prev) => [...prev, { sender: "bot", text: "Error: Unable to process request." }]);
     } finally {
       setIsLoading(false);
+      setTimeout(() => {
+        inputRef.current?.focus();
+      }, 100);
     }
   };
 
@@ -366,9 +372,16 @@ function Chat({ logout }) {
 
       <div style={{ display: "flex", gap: "10px" }}>
         <input
+          ref={inputRef}
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && !isLoading && sendMessage()}
+          onKeyDown={(e) => {
+
+            if (e.key === "Enter" && !isLoading) {
+              e.preventDefault();
+              sendMessage();
+            }
+          }}
           placeholder={t.placeholder}
           disabled={isLoading}
           style={{
@@ -378,19 +391,24 @@ function Chat({ logout }) {
             border: "2px solid #ddd",
             borderRadius: "8px",
             opacity: isLoading ? 0.6 : 1,
-            cursor: isLoading ? "not-allowed" : "text"
+            cursor: isLoading ? "not-allowed" : "text",
+            fontFamily: "inherit"
           }}
         />
-        <button onClick={sendMessage} disabled={isLoading} style={{
-          padding: "15px 30px",
-          background: isLoading ? "#ccc" : "#0066cc",
-          color: "#fff",
-          border: "none",
-          borderRadius: "8px",
-          cursor: isLoading ? "not-allowed" : "pointer",
-          fontWeight: "bold",
-          fontSize: "1rem"
-        }}>
+        <button
+          onClick={sendMessage}
+          disabled={isLoading}
+          style={{
+            padding: "15px 30px",
+            background: isLoading ? "#ccc" : "#0066cc",
+            color: "#fff",
+            border: "none",
+            borderRadius: "8px",
+            cursor: isLoading ? "not-allowed" : "pointer",
+            fontWeight: "bold",
+            fontSize: "1rem"
+          }}
+        >
           {isLoading ? t.sending : t.send}
         </button>
       </div>

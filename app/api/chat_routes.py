@@ -341,7 +341,7 @@ async def chat(
         message_lower = request.message.lower().strip()
         bot_response = None
 
-        acknowledgments = ["ok", "k","haa","h","s","gotch","haaa","hok","done","okay", "thanks", "thank you", "yes", "no", "got it", "sure", "alright", "fine"]
+        acknowledgments = ["ok", "k","haa","h","s","ha","gotch","haaa","hok","done","okay", "thanks", "thank you", "yes", "no", "got it", "sure", "alright", "fine"]
         if message_lower in acknowledgments:
             bot_response = "Is there anything else I can help you with?"
             intent = "GENERAL_CHAT"

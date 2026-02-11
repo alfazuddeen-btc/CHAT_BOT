@@ -35,6 +35,20 @@ Always end with this disclaimer:
 "This information is for general guidance only and does not replace professional medical advice."
 """
 
+ANTI_HALLUCINATION_GUARD = """
+CRITICAL SAFETY RULES (MANDATORY):
+
+- You only know information explicitly provided in this conversation or injected by the system.
+- You DO NOT know the user's name, identity, or personal details unless explicitly provided.
+- NEVER guess names, conditions, or personal facts.
+- If asked about unknown personal information, say clearly:
+  "I don’t have that information."
+
+- NEVER claim access to patient records, medical files, or private data.
+- If unsure, ask a neutral clarification question.
+
+Violation of these rules is not allowed.
+"""
 
 
 class LoginRequest(BaseModel):
@@ -294,20 +308,25 @@ async def chat(
         total_messages = db.query(Chat).filter(Chat.user_id == user_id).count()
         print(f" Total messages so far: {total_messages}")
 
-        if total_messages == 0:
+        from app.logic.consent_manager import has_active_consent, record_consent
+
+        has_user_consented = has_active_consent(db, user_id)
+
+        if not has_user_consented:
             message_lower = request.message.lower().strip()
             consent_keywords = [
                 "agree", "consent", "accept", "yes", "ok", "ha",
                 "सहमत", "सहमति", "स्वीकार", "हाँ", "हां"
             ]
-            has_consent = any(keyword in message_lower for keyword in consent_keywords)
+            has_consent_in_message = any(keyword in message_lower for keyword in consent_keywords)
 
-            if not has_consent:
+            if not has_consent_in_message:
+                print(f" Consent not yet provided - asking again")
                 response = t["consent_prompt"]
                 save_chat_message(db, user_id, request.session_id, request.message, response)
                 return ChatResponse(response=response, session_id=request.session_id)
             else:
-                from app.logic.consent_manager import record_consent
+                print(f" Consent provided!")
                 record_consent(db, user_id)
                 response = t["consent_confirmed"]
                 save_chat_message(db, user_id, request.session_id, request.message, response)
@@ -324,7 +343,7 @@ async def chat(
 
         acknowledgments = ["ok", "okay", "thanks", "thank you", "yes", "no", "got it", "sure", "alright", "fine"]
         if message_lower in acknowledgments:
-            bot_response = "Is there anything else I can help you with? You can ask about appointments, consultation fees, tests, or any medical information."
+            bot_response = "Is there anything else I can help you with?"
             intent = "GENERAL_CHAT"
             print(f" Auto-classified as GENERAL_CHAT (acknowledgment)")
 
@@ -403,6 +422,8 @@ async def chat(
                 """
                     else:f"""
                 {MEDICAL_STYLE_PROMPT}
+                
+                {ANTI_HALLUCINATION_GUARD}
 
                 User question:
                 {request.message}
@@ -456,9 +477,12 @@ async def chat(
 केवल ऊपर दिए गए चिकित्सा संदर्भ के आधार पर उत्तर दें:"""
                 else:
                     prompt = f"""{MEDICAL_STYLE_PROMPT}
+                    
 
 Use ONLY the medical context below.
 If the answer is not present, say you do not have enough information.
+
+{ANTI_HALLUCINATION_GUARD}
 
 Previous conversation:
 {memory_context}

@@ -37,16 +37,16 @@ app.add_middleware(
 def startup_event():
     try:
         Base.metadata.create_all(bind=engine)
-
-        print("=" * 60)
-        print(" DATABASE INITIALIZED SUCCESSFULLY!")
-        print("=" * 60)
-        print("Tables created:")
-        print("  • users")
-        print("  • chat_messages")
-        print("  • consents")
-        print("  • user_summaries")
-        print("  • documents")
+        #
+        # print("=" * 60)
+        # print(" DATABASE INITIALIZED SUCCESSFULLY!")
+        # print("=" * 60)
+        # print("Tables created:")
+        # print("  • users")
+        # print("  • chat_messages")
+        # print("  • consents")
+        # print("  • user_summaries")
+        # print("  • documents")
         print("=" * 60)
         print("Medical RAG Assistant is ready!")
         print("=" * 60)

@@ -83,56 +83,56 @@ function Chat({ logout }) {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
-  const loadChatHistory = async () => {
-    const token = localStorage.getItem("access_token");
-    const user_id = localStorage.getItem("user_id");
+  useEffect(() => {
+    const loadChatHistory = async () => {
+      const token = localStorage.getItem("access_token");
+      const user_id = localStorage.getItem("user_id");
 
-    if (!token || !user_id) {
-      setLoading(false);
-      return;
-    }
-
-    try {
-      const response = await fetch(`${API_URL}/chat/history/user/${user_id}`, {
-        headers: {
-          "Authorization": `Bearer ${token}`
-        }
-      });
-
-      if (response.status === 401) {
-        alert("Session expired. Please login again.");
-        handleLogout();
+      if (!token || !user_id) {
+        setLoading(false);
         return;
       }
 
-      if (response.ok) {
-        const data = await response.json();
+      try {
+        const response = await fetch(`${API_URL}/chat/history/user/${user_id}`, {
+          headers: {
+            "Authorization": `Bearer ${token}`
+          }
+        });
 
-        if (data.messages.length === 0) {
-          setMessages([{
-            sender: "bot",
-            text: t.welcome
-          }]);
-        } else {
-          const previousMessages = [];
-          data.messages.forEach((msg) => {
-            previousMessages.push({ sender: "user", text: msg.message });
-            previousMessages.push({ sender: "bot", text: msg.response });
-          });
-          setMessages(previousMessages);
+        if (response.status === 401) {
+          alert("Session expired. Please login again.");
+          handleLogout();
+          return;
         }
-      }
-    } catch (error) {
-      console.error("Error loading chat history:", error);
-    } finally {
-      setLoading(false);
-      setTimeout(() => {
-        inputRef.current?.focus();
-      }, 100);
-    }
-  };
 
-  useEffect(() => {
+        if (response.ok) {
+          const data = await response.json();
+
+          if (data.messages.length === 0) {
+            setMessages([{
+              sender: "bot",
+              text: t.welcome
+            }]);
+          } else {
+            const previousMessages = [];
+            data.messages.forEach((msg) => {
+              previousMessages.push({ sender: "user", text: msg.message });
+              previousMessages.push({ sender: "bot", text: msg.response });
+            });
+            setMessages(previousMessages);
+          }
+        }
+      } catch (error) {
+        console.error("Error loading chat history:", error);
+      } finally {
+        setLoading(false);
+        setTimeout(() => {
+          inputRef.current?.focus();
+        }, 100);
+      }
+    };
+
     loadChatHistory();
   }, []);
 
@@ -376,7 +376,6 @@ function Chat({ logout }) {
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => {
-
             if (e.key === "Enter" && !isLoading) {
               e.preventDefault();
               sendMessage();
@@ -395,20 +394,16 @@ function Chat({ logout }) {
             fontFamily: "inherit"
           }}
         />
-        <button
-          onClick={sendMessage}
-          disabled={isLoading}
-          style={{
-            padding: "15px 30px",
-            background: isLoading ? "#ccc" : "#0066cc",
-            color: "#fff",
-            border: "none",
-            borderRadius: "8px",
-            cursor: isLoading ? "not-allowed" : "pointer",
-            fontWeight: "bold",
-            fontSize: "1rem"
-          }}
-        >
+        <button onClick={sendMessage} disabled={isLoading} style={{
+          padding: "15px 30px",
+          background: isLoading ? "#ccc" : "#0066cc",
+          color: "#fff",
+          border: "none",
+          borderRadius: "8px",
+          cursor: isLoading ? "not-allowed" : "pointer",
+          fontWeight: "bold",
+          fontSize: "1rem"
+        }}>
           {isLoading ? t.sending : t.send}
         </button>
       </div>

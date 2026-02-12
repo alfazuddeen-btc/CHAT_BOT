@@ -10,7 +10,6 @@ import hashlib
 import uuid
 import os
 from dotenv import load_dotenv
-
 from app.core.jwt_auth import create_access_token, verify_token
 
 load_dotenv(override=True)
@@ -42,7 +41,7 @@ CRITICAL SAFETY RULES (MANDATORY):
 - You DO NOT know the user's name, identity, or personal details unless explicitly provided.
 - NEVER guess names, conditions, or personal facts.
 - If asked about unknown personal information, say clearly:
-  "I don’t have that information."
+  "I don't have that information."
 
 - NEVER claim access to patient records, medical files, or private data.
 - If unsure, ask a neutral clarification question.
@@ -199,6 +198,32 @@ def save_chat_message(db: Session, user_id: str, session_id: str, message: str, 
         db.rollback()
 
 
+def get_last_message_intent(db: Session, user_id: str) -> str:
+    try:
+        last_chat = db.query(Chat).filter(
+            Chat.user_id == user_id
+        ).order_by(Chat.timestamp.desc()).first()
+
+        if not last_chat:
+            return None
+
+        medical_keywords = [
+            "fever", "cold", "pain", "ache", "symptom", "disease", "illness",
+            "treatment", "medicine", "doctor", "hospital", "health", "sick",
+            "disease", "condition", "disorder", "syndrome", "infection",
+            "headache", "cough", "throat", "nausea", "vomit", "diarrhea",
+            "allergy", "diabetes", "hypertension", "blood", "pressure"
+        ]
+
+        message_lower = last_chat.message.lower()
+        if any(keyword in message_lower for keyword in medical_keywords):
+            return "MEDICAL"
+
+        return None
+    except:
+        return None
+
+
 @router.post("/login", response_model=LoginResponse)
 async def login(request: LoginRequest, db: Session = Depends(get_db)):
     try:
@@ -339,33 +364,56 @@ async def chat(
 
         history = load_chat_history(db, user_id)
         message_lower = request.message.lower().strip()
-        bot_response = None
+        simple_acknowledgments = [
+            "ok", "okay", "thanks", "thank you", "yes", "no", "nope",
+            "yep", "sure", "alright", "fine", "got it", "understood",
+            "cool", "good", "great", "perfect", "nice", "yeah", "nah",
+            "i see", "i understand", "i know", "👍", "👎"
+        ]
 
-        acknowledgments = ["ok", "k","haa","h","s","ha","gotch","haaa","hok","done","okay", "thanks", "thank you", "yes", "no", "got it", "sure", "alright", "fine"]
-        if message_lower in acknowledgments:
-            bot_response = "Is there anything else I can help you with?"
+        if message_lower in simple_acknowledgments:
             intent = "GENERAL_CHAT"
-            print(f" Auto-classified as GENERAL_CHAT (acknowledgment)")
-
-        elif message_lower.isdigit() and 1 <= int(message_lower) <= 3:
-            choice = int(message_lower)
-            if choice == 1:
-                bot_response = "Perfect! What medical topic would you like to know about? For example:\n- Appointment information\n- Consultation fees\n- Diagnostic test costs\n- Hospital timings"
-            elif choice == 2:
-                bot_response = "I'm a medical assistant chatbot here to help you with information about our medical facility and general health questions. What would you like to know?"
-            else:
-                bot_response = "I'm here to help! Please tell me what you'd like to know."
-            intent = "GENERAL_CHAT"
-            print(f" Auto-classified as GENERAL_CHAT (numbered response)")
-
+            print(f" Auto-classified as GENERAL_CHAT (simple acknowledgment)")
         else:
             intent = classify_intent(request.message)
             print(f" Intent: {intent}")
 
-        if bot_response:
-            save_chat_message(db, user_id, request.session_id, request.message, bot_response)
-            print(f" Chat response generated successfully (smart handling)")
-            return ChatResponse(response=bot_response, session_id=request.session_id)
+        if message_lower.isdigit():
+            choice = int(message_lower)
+            if choice == 1:
+                last_intent = get_last_message_intent(db, user_id)
+                if last_intent == "MEDICAL":
+
+                    intent = "MEDICAL"
+                    print(f" User selected Medical (from clarification, previous was MEDICAL) - forcing MEDICAL")
+                else:
+                    intent = "MEDICAL"
+                    print(f" User selected Medical (from clarification)")
+            elif choice == 2:
+                intent = "OTHER"
+                print(f" User selected Information about me - overriding intent")
+            else:
+                intent = "OTHER"
+                print(f" User selected Something else - overriding intent")
+
+        follow_up_keywords = [
+            "what to do", "how to", "what should", "should i", "can i",
+            "above", "that", "same", "those", "this", "it", "that one",
+            "it is", "it's", "that problem", "that issue", "already"
+        ]
+
+        if intent == "AMBIGUOUS" and message_lower.startswith("what to do"):
+            last_intent = get_last_message_intent(db, user_id)
+            if last_intent == "MEDICAL":
+                intent = "MEDICAL"
+                print(f" Context-aware: Follow-up to medical question → forcing MEDICAL")
+
+        if intent == "AMBIGUOUS" and any(
+                keyword in message_lower for keyword in ["already said", "said above", "above", "same"]):
+            last_intent = get_last_message_intent(db, user_id)
+            if last_intent == "MEDICAL":
+                intent = "MEDICAL"
+                print(f" Context-aware: Reference to previous medical question → forcing MEDICAL")
 
         if USE_LANGCHAIN:
             from langchain_groq import ChatGroq
@@ -415,15 +463,22 @@ async def chat(
                 - दवा की मात्रा या प्रिस्क्रिप्शन न दें
                 - गंभीर स्थिति में डॉक्टर से मिलने की सलाह दें
 
+                पिछली बातचीत:
+                {memory.get_memory_context()}
+
                 प्रश्न:
                 {request.message}
 
                 सरल, सुरक्षित और सहायक उत्तर दें।
                 """
-                    else:f"""
+                    else:
+                        prompt = f"""
                 {MEDICAL_STYLE_PROMPT}
-                
+
                 {ANTI_HALLUCINATION_GUARD}
+
+                Previous conversation context:
+                {memory.get_memory_context()}
 
                 User question:
                 {request.message}
@@ -477,7 +532,7 @@ async def chat(
 केवल ऊपर दिए गए चिकित्सा संदर्भ के आधार पर उत्तर दें:"""
                 else:
                     prompt = f"""{MEDICAL_STYLE_PROMPT}
-                    
+
 
 Use ONLY the medical context below.
 If the answer is not present, say you do not have enough information.
@@ -542,7 +597,8 @@ Previous conversation:
 {memory_context}
 
 Question: {request.message}
-"""
+
+Respond naturally and warmly."""
 
                 print(f"    Calling LangChain LLM (ChatGroq)...")
                 response = llm.invoke(prompt)
@@ -663,13 +719,13 @@ async def get_chat_history(
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+
 @router.get("/user/{user_id}/summary")
 async def get_user_summary(
         user_id: str,
         db: Session = Depends(get_db),
         current_user: dict = Depends(get_current_user)
 ):
-
     if current_user["sub"] != user_id:
         raise HTTPException(status_code=403, detail="Access denied")
 

@@ -368,7 +368,7 @@ async def chat(
             "ok", "okay", "thanks", "thank you", "yes", "no", "nope",
             "yep", "sure", "alright", "fine", "got it", "understood",
             "cool", "good", "great", "perfect", "nice", "yeah", "nah",
-            "i see", "i understand", "i know", "👍", "👎"
+            "i see", "i understand", "i know"
         ]
 
         if message_lower in simple_acknowledgments:

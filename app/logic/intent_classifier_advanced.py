@@ -57,3 +57,4 @@ Question should be natural and helpful. Keep it under 15 words."""
         return get_llm_response(prompt).strip()
     except:
         return "Could you clarify what you're asking about?"
+
